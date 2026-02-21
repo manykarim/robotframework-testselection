@@ -1,0 +1,92 @@
+# GitLab CI: Vector-Based Diverse Test Selection Pipeline
+# Reference: ADR-007 - CI/CD Integration and Caching Strategy
+#
+# Three-stage pipeline: vectorize -> select -> execute
+# Uses cache:key:files for content-hash caching of vectorization artifacts.
+
+stages:
+  - vectorize
+  - select
+  - execute
+
+variables:
+  PYTHON_VERSION: "3.11"
+  DEFAULT_K: "50"
+  DEFAULT_STRATEGY: "fps"
+  DIVERSE_SEED: "42"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+.uv-setup: &uv-setup
+  before_script:
+    - curl -LsSf https://astral.sh/uv/install.sh | sh
+    - export PATH="$HOME/.local/bin:$PATH"
+    - uv python install $PYTHON_VERSION
+
+vectorize:
+  stage: vectorize
+  image: python:${PYTHON_VERSION}-slim
+  <<: *uv-setup
+  cache:
+    key:
+      files:
+        - tests/**/*.robot
+    paths:
+      - vector_artifacts/
+      - .pip-cache/
+  script:
+    - uv sync --extra vectorize
+    - uv run testcase-select vectorize --suite ./tests/ --output ./vector_artifacts/
+  artifacts:
+    paths:
+      - vector_artifacts/embeddings.npz
+      - vector_artifacts/test_manifest.json
+      - vector_artifacts/file_hashes.json
+    expire_in: 7 days
+
+select:
+  stage: select
+  image: python:${PYTHON_VERSION}-slim
+  <<: *uv-setup
+  needs:
+    - job: vectorize
+      artifacts: true
+  variables:
+    DIVERSE_K: $DEFAULT_K
+    DIVERSE_STRATEGY: $DEFAULT_STRATEGY
+  script:
+    - uv sync
+    - |
+      uv run testcase-select select \
+        --artifacts ./vector_artifacts/ \
+        --k ${DIVERSE_K} \
+        --strategy ${DIVERSE_STRATEGY} \
+        --seed ${DIVERSE_SEED} \
+        --output selected_tests.json
+  artifacts:
+    paths:
+      - selected_tests.json
+    expire_in: 1 day
+
+execute:
+  stage: execute
+  image: python:${PYTHON_VERSION}-slim
+  <<: *uv-setup
+  needs:
+    - job: select
+      artifacts: true
+  script:
+    - uv sync
+    - |
+      uv run testcase-select execute \
+        --suite ./tests/ \
+        --selection selected_tests.json \
+        --output-dir ./results/
+  artifacts:
+    paths:
+      - results/output.xml
+      - results/log.html
+      - results/report.html
+      - results/selection_report.json
+    expire_in: 30 days
+    reports:
+      junit: results/output.xml

@@ -1,0 +1,183 @@
+# GitHub Actions: Vector-Based Diverse Test Selection Pipeline
+# Reference: ADR-007 - CI/CD Integration and Caching Strategy
+#
+# Three-job pipeline: vectorize -> select -> execute
+# Uses content-hash caching to skip vectorization when test files are unchanged.
+
+name: Diverse Test Selection
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      k:
+        description: "Number of tests to select"
+        default: "50"
+      strategy:
+        description: "Selection strategy"
+        default: "fps"
+        type: choice
+        options:
+          - fps
+          - fps_multi
+          - kmedoids
+          - facility
+          - dpp
+
+env:
+  PYTHON_VERSION: "3.11"
+  DIVERSE_K: ${{ github.event.inputs.k || '50' }}
+  DIVERSE_STRATEGY: ${{ github.event.inputs.strategy || 'fps' }}
+  DIVERSE_SEED: "42"
+
+jobs:
+  vectorize:
+    name: "Stage 1: Vectorize"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Hash test files for cache key
+        id: test-hash
+        run: |
+          HASH=$(find tests/ -name "*.robot" -o -name "*.csv" | \
+                 sort | xargs md5sum | md5sum | cut -d' ' -f1)
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+
+      - name: Cache vector artifacts
+        id: cache-vectors
+        uses: actions/cache@v4
+        with:
+          path: vector_artifacts/
+          key: vectors-${{ steps.test-hash.outputs.hash }}
+          restore-keys: |
+            vectors-
+
+      - name: Install dependencies
+        if: steps.cache-vectors.outputs.cache-hit != 'true'
+        run: uv sync --extra vectorize
+
+      - name: Run vectorization
+        if: steps.cache-vectors.outputs.cache-hit != 'true'
+        run: uv run testcase-select vectorize --suite ./tests/ --output ./vector_artifacts/
+
+      - name: Upload vector artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vector-artifacts
+          path: |
+            vector_artifacts/embeddings.npz
+            vector_artifacts/test_manifest.json
+            vector_artifacts/file_hashes.json
+          retention-days: 7
+
+  select:
+    name: "Stage 2: Select"
+    needs: vectorize
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Download vector artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: vector-artifacts
+          path: vector_artifacts/
+
+      - name: Run selection
+        run: |
+          uv run testcase-select select \
+            --artifacts ./vector_artifacts/ \
+            --k ${{ env.DIVERSE_K }} \
+            --strategy ${{ env.DIVERSE_STRATEGY }} \
+            --seed ${{ env.DIVERSE_SEED }} \
+            --output selected_tests.json
+
+      - name: Upload selection artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: selection-artifact
+          path: selected_tests.json
+          retention-days: 1
+
+      - name: Annotate PR with selection summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const sel = JSON.parse(fs.readFileSync('selected_tests.json'));
+            const reduction = (100 * (1 - sel.k / sel.total_tests)).toFixed(1);
+            const body = [
+              '### Diverse Test Selection',
+              '| Metric | Value |',
+              '|--------|-------|',
+              `| Strategy | \`${sel.strategy}\` |`,
+              `| Selected | ${sel.k} / ${sel.total_tests} |`,
+              `| Reduction | ${reduction}% |`,
+              `| Seed | ${sel.seed} |`,
+            ].join('\n');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  execute:
+    name: "Stage 3: Execute"
+    needs: select
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Download selection artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: selection-artifact
+
+      - name: Execute selected tests
+        run: |
+          uv run testcase-select execute \
+            --suite ./tests/ \
+            --selection selected_tests.json \
+            --output-dir ./results/
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            results/output.xml
+            results/log.html
+            results/report.html
+            results/selection_report.json
+          retention-days: 30

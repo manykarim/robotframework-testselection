@@ -1,0 +1,120 @@
+// Jenkins Declarative Pipeline: Vector-Based Diverse Test Selection
+// Reference: ADR-007 - CI/CD Integration and Caching Strategy
+//
+// Three-stage pipeline: Vectorize -> Select -> Execute
+// Uses file-hash sentinel files for cross-build caching of vector artifacts.
+
+pipeline {
+    agent any
+
+    parameters {
+        integer(name: 'K', defaultValue: 50, description: 'Number of tests to select')
+        choice(
+            name: 'STRATEGY',
+            choices: ['fps', 'fps_multi', 'kmedoids', 'facility', 'dpp'],
+            description: 'Selection strategy'
+        )
+        string(name: 'SEED', defaultValue: '42', description: 'Random seed for reproducibility')
+    }
+
+    environment {
+        PYTHON_VERSION = '3.11'
+        DIVERSE_K = "${params.K}"
+        DIVERSE_STRATEGY = "${params.STRATEGY}"
+        DIVERSE_SEED = "${params.SEED}"
+    }
+
+    stages {
+        stage('Vectorize') {
+            steps {
+                script {
+                    def testsHash = sh(
+                        script: 'find tests/ -name "*.robot" -o -name "*.csv" | sort | xargs md5sum | md5sum | cut -d" " -f1',
+                        returnStdout: true
+                    ).trim()
+
+                    def cached = fileExists("vector_artifacts/.hash_${testsHash}")
+
+                    if (!cached) {
+                        sh 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+                        sh 'export PATH="$HOME/.local/bin:$PATH" && uv python install ${PYTHON_VERSION}'
+                        sh 'export PATH="$HOME/.local/bin:$PATH" && uv sync --extra vectorize'
+                        sh 'export PATH="$HOME/.local/bin:$PATH" && uv run testcase-select vectorize --suite ./tests/ --output ./vector_artifacts/ --force'
+                        sh "touch vector_artifacts/.hash_${testsHash}"
+                    } else {
+                        echo "Vectorization cache hit (hash: ${testsHash}), skipping."
+                    }
+                }
+            }
+            post {
+                success {
+                    stash name: 'vectors', includes: 'vector_artifacts/**'
+                }
+            }
+        }
+
+        stage('Select') {
+            steps {
+                unstash 'vectors'
+
+                sh 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+                sh 'export PATH="$HOME/.local/bin:$PATH" && uv python install ${PYTHON_VERSION}'
+                sh 'export PATH="$HOME/.local/bin:$PATH" && uv sync'
+                sh """
+                    export PATH="\$HOME/.local/bin:\$PATH"
+                    uv run testcase-select select \
+                        --artifacts ./vector_artifacts/ \
+                        --k ${params.K} \
+                        --strategy ${params.STRATEGY} \
+                        --seed ${params.SEED} \
+                        --output selected_tests.json
+                """
+            }
+            post {
+                success {
+                    stash name: 'selection', includes: 'selected_tests.json'
+                }
+            }
+        }
+
+        stage('Execute') {
+            steps {
+                unstash 'selection'
+
+                sh 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+                sh 'export PATH="$HOME/.local/bin:$PATH" && uv python install ${PYTHON_VERSION}'
+                sh 'export PATH="$HOME/.local/bin:$PATH" && uv sync'
+                sh """
+                    export PATH="\$HOME/.local/bin:\$PATH"
+                    uv run testcase-select execute \
+                        --suite ./tests/ \
+                        --selection selected_tests.json \
+                        --output-dir ./results/
+                """
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'results/**', allowEmptyArchive: true
+
+                    robot(
+                        outputPath: 'results/',
+                        outputFileName: 'output.xml',
+                        logFileName: 'log.html',
+                        reportFileName: 'report.html',
+                        passThreshold: 90.0,
+                        unstableThreshold: 75.0
+                    )
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo 'Diverse test selection pipeline failed.'
+        }
+        success {
+            echo 'Diverse test selection pipeline completed successfully.'
+        }
+    }
+}

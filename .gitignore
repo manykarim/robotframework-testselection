@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Virtual environments
+.venv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+results/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Tools
+.ruff_cache/
+.mypy_cache/
+
+# Claude Flow
+.claude-flow/
+.claude/
+
+# Example suite (cloned repos, not part of the package)
+example-suite/
+
+# Artifacts
+artifacts/
+*.npz

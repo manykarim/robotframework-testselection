@@ -1,0 +1,6 @@
+*** Test Cases ***;${username};${password};${expected_result}
+Login admin;admin;secret;success
+Login user;user1;pass123;success
+Login invalid;baduser;badpass;failure
+Login empty password;admin;;failure
+Login special chars;admin@company;p@ss!;success
