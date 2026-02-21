@@ -347,4 +347,4 @@ Keyword resolution: ~18 us/depth-1 resolve, ~61 us/depth-3 resolve. Text buildin
 
 ## License
 
-MIT
+Apache 2.0

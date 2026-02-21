@@ -152,7 +152,7 @@ name = "testcase-selection"
 version = "0.1.0"
 description = "Vector-based diverse test case selection for Robot Framework"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 readme = "README.md"
 dependencies = [
     "robotframework>=7.0",

@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Vector-based diverse test case selection for Robot Framework"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 authors = [
     { name = "Many Kasiriha" },
 ]
@@ -27,7 +27,7 @@ classifiers = [
     "Framework :: Robot Framework :: Library",
     "Framework :: Robot Framework :: Tool",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",

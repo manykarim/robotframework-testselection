@@ -78,7 +78,7 @@ name = "robotframework-diversetest"
 version = "0.1.0"
 description = "Vector-based diverse test case selection for Robot Framework"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 authors = [
     { name = "Your Name", email = "you@example.com" },
 ]
@@ -97,7 +97,7 @@ classifiers = [
     "Framework :: Robot Framework :: Library",
     "Framework :: Robot Framework :: Tool",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
@@ -155,7 +155,7 @@ mypy_path = "src"
 | File | Purpose | Currently Exists |
 |------|---------|-----------------|
 | `README.md` | PyPI long description | Yes |
-| `LICENSE` | MIT license text | **No — must create** |
+| `LICENSE` | Apache 2.0 license text | **No — must create** |
 | `CHANGELOG.md` | Version history | **No — must create** |
 | `py.typed` | PEP 561 marker for type checkers | **No — should create** |
 | `.gitignore` | Standard Python gitignore | **No — should create** |
