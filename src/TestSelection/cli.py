@@ -218,7 +218,7 @@ def _fallback_execute(args: argparse.Namespace) -> int:
             str(args.output_dir),
             str(args.suite),
         ]
-        return robot.run_cli(robot_args, exit=False)
+        return robot.run_cli(robot_args, exit=False)  # type: ignore[attr-defined]
     except Exception as exc:
         logger.error("[DIVERSE-SELECT] Fallback execution failed: %s", exc)
         return 2

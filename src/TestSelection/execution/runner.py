@@ -49,7 +49,7 @@ class ExecutionRunner:
         if extra_args:
             args.extend(extra_args)
         args.append(str(self._suite_path))
-        return robot.run_cli(args, exit=False)
+        return robot.run_cli(args, exit=False)  # type: ignore[attr-defined]
 
     def generate_report(self, return_code: int) -> dict:
         """Generate selection_report.json with execution metadata."""

@@ -116,3 +116,15 @@ python_version = "3.11"
 strict = false
 packages = ["TestSelection"]
 mypy_path = "src"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "sklearn.*",
+    "sklearn_extra.*",
+    "sentence_transformers.*",
+    "apricot.*",
+    "dppy.*",
+    "robot.*",
+]
+ignore_missing_imports = true

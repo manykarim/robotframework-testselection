@@ -1,6 +1,8 @@
 """Strategy registry for selection algorithms."""
 from __future__ import annotations
 
+from typing import Any
+
 from TestSelection.selection.fps import FarthestPointSampling, FPSMultiStart
 from TestSelection.selection.strategy import SelectionStrategy
 
@@ -9,9 +11,9 @@ class StrategyRegistry:
     """Registry mapping strategy names to their implementation classes."""
 
     def __init__(self) -> None:
-        self._strategies: dict[str, type] = {}
+        self._strategies: dict[str, Any] = {}
 
-    def register(self, strategy_class: type) -> None:
+    def register(self, strategy_class: Any) -> None:
         """Register a strategy class by its name attribute."""
         self._strategies[strategy_class.name] = strategy_class
 
