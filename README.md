@@ -100,6 +100,30 @@ testcase-select vectorize \
   --datadriver-csv tests/data/login.csv tests/data/search.csv
 ```
 
+### Passing Robot Framework Options
+
+All arguments after `--` are forwarded directly to `robot`. This lets you combine diversity selection with any Robot Framework option — variables, tag filters, log levels, listeners, etc.
+
+```bash
+# Pass variables and set log level
+testcase-select run --suite tests/ --k 20 \
+  -- --variable ENV:staging --variable USER:admin --loglevel DEBUG
+
+# Use Robot's own tag filtering on top of diversity selection
+testcase-select execute --suite tests/ --selection sel.json \
+  -- --include smoke --exclude manual
+
+# Add metadata and custom output name
+testcase-select run --suite tests/ --k 30 \
+  -- --metadata Version:2.1 --name "Smoke Regression"
+
+# Set variables file and debug log
+testcase-select run --suite tests/ --k 50 \
+  -- --variablefile config/env_staging.py --debugfile debug.log
+```
+
+This works with both `run` and `execute` subcommands, including during graceful fallback (when selection fails and all tests are run).
+
 ### Direct Robot Framework Integration
 
 You can also use the components directly with `robot`:

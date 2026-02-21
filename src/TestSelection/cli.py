@@ -19,12 +19,29 @@ def _setup_logging(verbose: bool = False) -> None:
 
 
 def _add_vectorize_parser(subparsers: argparse._SubParsersAction) -> None:
-    p = subparsers.add_parser("vectorize", help="Stage 1: vectorize test suite")
-    p.add_argument("--suite", required=True, type=Path, help="Path to .robot suite")
-    p.add_argument("--output", required=True, type=Path, help="Artifact output dir")
-    p.add_argument("--model", default="all-MiniLM-L6-v2", help="Embedding model name")
-    p.add_argument("--resolve-depth", type=int, default=0, help="Keyword resolve depth")
-    p.add_argument("--force", action="store_true", help="Force re-indexing")
+    p = subparsers.add_parser(
+        "vectorize", help="Stage 1: vectorize test suite",
+    )
+    p.add_argument(
+        "--suite", required=True, type=Path,
+        help="Path to .robot suite",
+    )
+    p.add_argument(
+        "--output", required=True, type=Path,
+        help="Artifact output dir",
+    )
+    p.add_argument(
+        "--model", default="all-MiniLM-L6-v2",
+        help="Embedding model name",
+    )
+    p.add_argument(
+        "--resolve-depth", type=int, default=0,
+        help="Keyword resolve depth",
+    )
+    p.add_argument(
+        "--force", action="store_true",
+        help="Force re-indexing",
+    )
     p.add_argument(
         "--datadriver-csv", nargs="*", type=Path,
         help="DataDriver CSV files",
@@ -38,13 +55,23 @@ def _add_select_parser(subparsers: argparse._SubParsersAction) -> None:
     default_seed = int(os.environ.get("DIVERSE_SEED", "42"))
     default_output = os.environ.get("DIVERSE_OUTPUT", "")
 
-    p = subparsers.add_parser("select", help="Stage 2: select diverse subset")
-    p.add_argument("--artifacts", required=True, type=Path, help="Artifact directory")
-    p.add_argument("--k", type=int, default=default_k, help="Number of tests to select")
-    p.add_argument("--strategy", default=default_strategy, help="Selection strategy")
+    p = subparsers.add_parser(
+        "select", help="Stage 2: select diverse subset",
+    )
     p.add_argument(
-        "--output",
-        type=Path,
+        "--artifacts", required=True, type=Path,
+        help="Artifact directory",
+    )
+    p.add_argument(
+        "--k", type=int, default=default_k,
+        help="Number of tests to select",
+    )
+    p.add_argument(
+        "--strategy", default=default_strategy,
+        help="Selection strategy",
+    )
+    p.add_argument(
+        "--output", type=Path,
         default=Path(default_output) if default_output else None,
         help="Output selection file",
     )
@@ -52,27 +79,44 @@ def _add_select_parser(subparsers: argparse._SubParsersAction) -> None:
         "--include-tags", nargs="*",
         help="Include only tests with these tags",
     )
-    p.add_argument("--exclude-tags", nargs="*", help="Exclude tests with these tags")
-    p.add_argument("--seed", type=int, default=default_seed, help="Random seed")
     p.add_argument(
-        "--no-datadriver",
-        action="store_true",
+        "--exclude-tags", nargs="*",
+        help="Exclude tests with these tags",
+    )
+    p.add_argument(
+        "--seed", type=int, default=default_seed,
+        help="Random seed",
+    )
+    p.add_argument(
+        "--no-datadriver", action="store_true",
         help="Exclude DataDriver tests",
     )
     p.set_defaults(func=_cmd_select)
 
 
 def _add_execute_parser(subparsers: argparse._SubParsersAction) -> None:
-    p = subparsers.add_parser("execute", help="Stage 3: execute selected tests")
-    p.add_argument("--suite", required=True, type=Path, help="Path to .robot suite")
+    p = subparsers.add_parser(
+        "execute",
+        help="Stage 3: execute selected tests",
+        epilog=(
+            "All arguments after -- are passed directly to robot. "
+            "Example: testcase-select execute --suite tests/ "
+            "--selection sel.json "
+            "-- --variable ENV:staging --loglevel DEBUG"
+        ),
+    )
     p.add_argument(
-        "--selection", required=True, type=Path, help="Selection JSON file"
+        "--suite", required=True, type=Path,
+        help="Path to .robot suite",
+    )
+    p.add_argument(
+        "--selection", required=True, type=Path,
+        help="Selection JSON file",
     )
     p.add_argument(
         "--output-dir", type=Path, default=Path("./results"),
         help="Output dir",
     )
-    p.add_argument("--robot-args", nargs="*", help="Extra robot arguments")
     p.set_defaults(func=_cmd_execute)
 
 
@@ -81,10 +125,27 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
     default_strategy = os.environ.get("DIVERSE_STRATEGY", "fps")
     default_seed = int(os.environ.get("DIVERSE_SEED", "42"))
 
-    p = subparsers.add_parser("run", help="Full pipeline: vectorize + select + execute")
-    p.add_argument("--suite", required=True, type=Path, help="Path to .robot suite")
-    p.add_argument("--k", type=int, default=default_k, help="Number of tests to select")
-    p.add_argument("--strategy", default=default_strategy, help="Selection strategy")
+    p = subparsers.add_parser(
+        "run",
+        help="Full pipeline: vectorize + select + execute",
+        epilog=(
+            "All arguments after -- are passed directly to robot. "
+            "Example: testcase-select run --suite tests/ --k 20 "
+            "-- --include smoke --variable ENV:staging"
+        ),
+    )
+    p.add_argument(
+        "--suite", required=True, type=Path,
+        help="Path to .robot suite",
+    )
+    p.add_argument(
+        "--k", type=int, default=default_k,
+        help="Number of tests to select",
+    )
+    p.add_argument(
+        "--strategy", default=default_strategy,
+        help="Selection strategy",
+    )
     p.add_argument(
         "--output-dir", type=Path, default=Path("./results"),
         help="Output dir",
@@ -93,10 +154,18 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         "--model", default="all-MiniLM-L6-v2",
         help="Embedding model name",
     )
-    p.add_argument("--resolve-depth", type=int, default=0, help="Keyword resolve depth")
-    p.add_argument("--force", action="store_true", help="Force re-indexing")
-    p.add_argument("--seed", type=int, default=default_seed, help="Random seed")
-    p.add_argument("--robot-args", nargs="*", help="Extra robot arguments")
+    p.add_argument(
+        "--resolve-depth", type=int, default=0,
+        help="Keyword resolve depth",
+    )
+    p.add_argument(
+        "--force", action="store_true",
+        help="Force re-indexing",
+    )
+    p.add_argument(
+        "--seed", type=int, default=default_seed,
+        help="Random seed",
+    )
     p.set_defaults(func=_cmd_run)
 
 
@@ -115,7 +184,9 @@ def _cmd_vectorize(args: argparse.Namespace) -> int:
         if indexed:
             logger.info("[DIVERSE-SELECT] Vectorization complete")
         else:
-            logger.info("[DIVERSE-SELECT] Vectorization skipped (no changes)")
+            logger.info(
+                "[DIVERSE-SELECT] Vectorization skipped (no changes)"
+            )
         return 0
     except Exception as exc:
         logger.error("[DIVERSE-SELECT] Vectorization failed: %s", exc)
@@ -154,7 +225,7 @@ def _cmd_execute(args: argparse.Namespace) -> int:
         suite_path=args.suite,
         selection_file=args.selection,
         output_dir=str(args.output_dir),
-        extra_robot_args=args.robot_args,
+        extra_robot_args=args.robot_passthrough,
     )
 
 
@@ -176,7 +247,8 @@ def _cmd_run(args: argparse.Namespace) -> int:
         )
     except Exception as exc:
         logger.warning(
-            "[DIVERSE-SELECT] Vectorization failed, falling back to all tests: %s",
+            "[DIVERSE-SELECT] Vectorization failed, "
+            "falling back to all tests: %s",
             exc,
         )
         return _fallback_execute(args)
@@ -193,7 +265,8 @@ def _cmd_run(args: argparse.Namespace) -> int:
         )
     except Exception as exc:
         logger.warning(
-            "[DIVERSE-SELECT] Selection failed, falling back to all tests: %s",
+            "[DIVERSE-SELECT] Selection failed, "
+            "falling back to all tests: %s",
             exc,
         )
         return _fallback_execute(args)
@@ -203,7 +276,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
         suite_path=args.suite,
         selection_file=selection_file,
         output_dir=str(args.output_dir),
-        extra_robot_args=args.robot_args,
+        extra_robot_args=args.robot_passthrough,
     )
 
 
@@ -216,11 +289,16 @@ def _fallback_execute(args: argparse.Namespace) -> int:
         robot_args = [
             "--outputdir",
             str(args.output_dir),
-            str(args.suite),
         ]
+        # Pass through any robot options from after --
+        if args.robot_passthrough:
+            robot_args.extend(args.robot_passthrough)
+        robot_args.append(str(args.suite))
         return robot.run_cli(robot_args, exit=False)  # type: ignore[attr-defined]
     except Exception as exc:
-        logger.error("[DIVERSE-SELECT] Fallback execution failed: %s", exc)
+        logger.error(
+            "[DIVERSE-SELECT] Fallback execution failed: %s", exc,
+        )
         return 2
 
 
@@ -228,10 +306,18 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the argument parser."""
     parser = argparse.ArgumentParser(
         prog="testcase-select",
-        description="Vector-based diverse test case selection for Robot Framework",
+        description=(
+            "Vector-based diverse test case selection "
+            "for Robot Framework"
+        ),
     )
-    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    parser.add_argument(
+        "--verbose", "-v", action="store_true",
+        help="Verbose logging",
+    )
+    subparsers = parser.add_subparsers(
+        dest="command", help="Available commands",
+    )
     _add_vectorize_parser(subparsers)
     _add_select_parser(subparsers)
     _add_execute_parser(subparsers)
@@ -239,10 +325,37 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _split_robot_passthrough(
+    argv: list[str],
+) -> tuple[list[str], list[str]]:
+    """Split argv at -- into our args and robot passthrough args.
+
+    Returns (our_args, robot_args). If no -- is present, robot_args
+    is empty.
+    """
+    try:
+        sep = argv.index("--")
+        return argv[:sep], argv[sep + 1:]
+    except ValueError:
+        return argv, []
+
+
 def main(argv: list[str] | None = None) -> int:
-    """Main CLI entry point."""
+    """Main CLI entry point.
+
+    Arguments after -- are passed through to robot:
+        testcase-select run --suite tests/ --k 20 \\
+            -- --variable ENV:staging --loglevel DEBUG --include smoke
+    """
+    if argv is None:
+        argv = sys.argv[1:]
+
+    our_args, robot_args = _split_robot_passthrough(argv)
+
     parser = build_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(our_args)
+    args.robot_passthrough = robot_args or None
+
     _setup_logging(getattr(args, "verbose", False))
 
     if not args.command:
