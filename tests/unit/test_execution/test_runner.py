@@ -3,12 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from TestSelection.execution.runner import ExecutionRunner
 
 
-def _write_selection(tmp_path: Path, selected: list[dict], strategy: str = "fps") -> Path:
+def _write_selection(
+    tmp_path: Path, selected: list[dict], strategy: str = "fps",
+) -> Path:
     """Write a selection JSON file and return its path."""
     selection_file = tmp_path / "selected_tests.json"
     data = {

@@ -105,6 +105,12 @@ src = ["src"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+"src/TestSelection/**/__init__.py" = ["N999"]
+"tests/unit/test_selection/test_dpp.py" = ["E402"]
+"tests/unit/test_selection/test_facility.py" = ["E402"]
+"tests/unit/test_selection/test_kmedoids.py" = ["E402"]
+
 [tool.mypy]
 python_version = "3.11"
 strict = false

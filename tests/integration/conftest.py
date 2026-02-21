@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
-from pathlib import Path
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def sample_csv_path():
 
 @pytest.fixture
 def fake_artifacts(tmp_path, sample_suite_path):
-    """Create realistic fake vector artifacts for testing Stage 2 and 3 without ML model."""
+    """Create fake vector artifacts for testing Stage 2 and 3."""
     from TestSelection.parsing.suite_collector import RobotApiAdapter
 
     # Parse real tests

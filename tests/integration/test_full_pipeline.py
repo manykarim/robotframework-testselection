@@ -12,13 +12,15 @@ from TestSelection.pipeline.select import run_select
 class TestFullPipeline:
     """End-to-end pipeline test using real parsing and fake embeddings."""
 
-    def test_full_parse_select_filter_flow(self, fake_artifacts, sample_suite_path, tmp_path):
+    def test_full_parse_select_filter_flow(
+        self, fake_artifacts, sample_suite_path, tmp_path,
+    ):
         artifact_dir, raw_tests = fake_artifacts
         k = 6
 
         # Stage 2: Select
         selection_file = tmp_path / "selected.json"
-        result = run_select(artifact_dir=artifact_dir, k=k, output_file=selection_file)
+        run_select(artifact_dir=artifact_dir, k=k, output_file=selection_file)
 
         # Stage 3: Filter via PreRunModifier
         modifier = DiversePreRunModifier(str(selection_file))
@@ -28,7 +30,9 @@ class TestFullPipeline:
         remaining = list(suite.tests)
         assert len(remaining) == k
 
-    def test_selected_names_are_valid_subset(self, fake_artifacts, sample_suite_path, tmp_path):
+    def test_selected_names_are_valid_subset(
+        self, fake_artifacts, sample_suite_path, tmp_path,
+    ):
         artifact_dir, raw_tests = fake_artifacts
         k = 4
 
@@ -41,7 +45,9 @@ class TestFullPipeline:
         assert selected_names.issubset(all_names)
         assert len(selected_names) == k
 
-    def test_pipeline_with_different_strategies(self, fake_artifacts, sample_suite_path, tmp_path):
+    def test_pipeline_with_different_strategies(
+        self, fake_artifacts, sample_suite_path, tmp_path,
+    ):
         artifact_dir, raw_tests = fake_artifacts
         k = 5
 
@@ -62,7 +68,9 @@ class TestFullPipeline:
             remaining = list(suite.tests)
             assert len(remaining) == k
 
-    def test_pipeline_with_tag_filtering(self, fake_artifacts, sample_suite_path, tmp_path):
+    def test_pipeline_with_tag_filtering(
+        self, fake_artifacts, sample_suite_path, tmp_path,
+    ):
         artifact_dir, raw_tests = fake_artifacts
 
         # Select from only "smoke" tagged tests
@@ -80,8 +88,8 @@ class TestFullPipeline:
         suite.visit(modifier)
 
         remaining = list(suite.tests)
-        # Smoke-tagged tests in sample.robot: Login With Valid Credentials, Search Products By Name,
-        # Add Single Item To Cart, Complete Purchase Flow = 4
+        # Smoke-tagged tests in sample.robot:
+        # Login, Search, Add To Cart, Complete Purchase = 4
         assert len(remaining) == len(result.selected)
         assert len(remaining) <= 10
 

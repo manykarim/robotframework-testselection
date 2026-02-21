@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 from robot.api import TestSuite
 
 from TestSelection.execution.prerun_modifier import DiversePreRunModifier

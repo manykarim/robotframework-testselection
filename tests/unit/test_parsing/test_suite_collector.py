@@ -25,9 +25,11 @@ class TestParseSuite:
         tests, _ = adapter.parse_suite(SAMPLE_ROBOT)
         required_keys = {"name", "tags", "body", "source", "suite_name"}
         for test in tests:
-            assert required_keys.issubset(
-                test.keys()
-            ), f"Test {test.get('name', '?')} missing keys: {required_keys - test.keys()}"
+            missing = required_keys - test.keys()
+            name = test.get("name", "?")
+            assert required_keys.issubset(test.keys()), (
+                f"Test {name} missing keys: {missing}"
+            )
 
     def test_keyword_map_contains_user_keywords(self) -> None:
         adapter = RobotApiAdapter()

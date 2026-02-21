@@ -15,7 +15,9 @@ from TestSelection.pipeline.select import run_select
 class TestStage3Execute:
     """End-to-end tests for execution filtering using fake artifacts."""
 
-    def test_prerun_modifier_filters_tests(self, fake_artifacts, sample_suite_path, tmp_path):
+    def test_prerun_modifier_filters_tests(
+        self, fake_artifacts, sample_suite_path, tmp_path,
+    ):
         artifact_dir, raw_tests = fake_artifacts
         k = 5
 
@@ -36,7 +38,9 @@ class TestStage3Execute:
         assert remaining_names == selected_names
         assert len(remaining) == k
 
-    def test_modifier_stats_are_correct(self, fake_artifacts, sample_suite_path, tmp_path):
+    def test_modifier_stats_are_correct(
+        self, fake_artifacts, sample_suite_path, tmp_path,
+    ):
         artifact_dir, raw_tests = fake_artifacts
         k = 5
 
@@ -50,7 +54,9 @@ class TestStage3Execute:
         assert modifier.stats["kept"] == k
         assert modifier.stats["removed"] == len(raw_tests) - k
 
-    def test_selection_report_generated(self, fake_artifacts, sample_suite_path, tmp_path):
+    def test_selection_report_generated(
+        self, fake_artifacts, sample_suite_path, tmp_path,
+    ):
         artifact_dir, raw_tests = fake_artifacts
         k = 5
 
@@ -79,7 +85,9 @@ class TestStage3Execute:
         saved_report = json.loads(report_path.read_text())
         assert saved_report["selected_tests"] == k
 
-    def test_runner_builds_correct_robot_args(self, fake_artifacts, sample_suite_path, tmp_path):
+    def test_runner_builds_correct_robot_args(
+        self, fake_artifacts, sample_suite_path, tmp_path,
+    ):
         artifact_dir, raw_tests = fake_artifacts
 
         selection_file = tmp_path / "selected.json"

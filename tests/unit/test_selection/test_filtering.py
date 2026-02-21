@@ -18,9 +18,15 @@ class FakeManifestEntry:
 
 def _make_entries() -> list[FakeManifestEntry]:
     return [
-        FakeManifestEntry(name="Login Test", tags=("smoke", "auth"), is_datadriver=False),
-        FakeManifestEntry(name="DD Checkout", tags=("checkout",), is_datadriver=True),
-        FakeManifestEntry(name="Search Test", tags=("search", "smoke"), is_datadriver=False),
+        FakeManifestEntry(
+            name="Login Test", tags=("smoke", "auth"), is_datadriver=False,
+        ),
+        FakeManifestEntry(
+            name="DD Checkout", tags=("checkout",), is_datadriver=True,
+        ),
+        FakeManifestEntry(
+            name="Search Test", tags=("search", "smoke"), is_datadriver=False,
+        ),
         FakeManifestEntry(name="Admin Panel", tags=("admin",), is_datadriver=False),
         FakeManifestEntry(name="DD Report", tags=("report",), is_datadriver=True),
     ]

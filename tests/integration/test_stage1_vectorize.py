@@ -22,7 +22,7 @@ class TestStage1Vectorize:
     def test_parse_builds_keyword_map(self, sample_suite_path):
         adapter = RobotApiAdapter()
         raw_tests, kw_map = adapter.parse_suite(sample_suite_path)
-        # sample.robot defines user keywords like "Login As User", "Open Application", etc.
+        # sample.robot defines user keywords like "Login As User"
         assert len(kw_map) > 0
         # Check a known keyword is in the map (normalized)
         assert "login_as_user" in kw_map
@@ -66,14 +66,17 @@ class TestStage1Vectorize:
 
         for test_dict in raw_tests:
             assert test_dict["source"], f"Test {test_dict['name']} missing source"
-            assert test_dict["suite_name"], f"Test {test_dict['name']} missing suite_name"
+            name = test_dict["name"]
+            assert test_dict["suite_name"], f"Test {name} missing suite_name"
 
     def test_tags_are_extracted_correctly(self, sample_suite_path):
         adapter = RobotApiAdapter()
         raw_tests, kw_map = adapter.parse_suite(sample_suite_path)
 
         # Find the "Login With Valid Credentials" test and check its tags
-        login_test = next(t for t in raw_tests if t["name"] == "Login With Valid Credentials")
+        login_test = next(
+            t for t in raw_tests if t["name"] == "Login With Valid Credentials"
+        )
         assert "smoke" in login_test["tags"]
         assert "authentication" in login_test["tags"]
 
