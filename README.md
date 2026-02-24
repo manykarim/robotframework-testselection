@@ -1,6 +1,6 @@
 # robotframework-testselection
 
-Vector-based diverse test case selection for Robot Framework. Embeds test cases as semantic vectors and selects maximally diverse subsets to reduce test suite execution time while preserving coverage breadth.
+Vector-based diverse test case selection for Robot Framework and pytest. Embeds test cases as semantic vectors and selects maximally diverse subsets to reduce test suite execution time while preserving coverage breadth.
 
 ## How It Works
 
@@ -42,6 +42,8 @@ Requires Python 3.10+ and [uv](https://docs.astral.sh/uv/).
 uv sync --extra vectorize
 uv sync --extra all
 ```
+
+The pytest plugin is included in the base install and activates when you pass `--diverse-k` to pytest.
 
 ### Dependency Groups
 
@@ -123,6 +125,38 @@ testcase-select run --suite tests/ --k 50 \
 ```
 
 This works with both `run` and `execute` subcommands, including during graceful fallback (when selection fails and all tests are run).
+
+### pytest Support
+
+The diversity selection algorithm also works with pytest test suites, via a pytest plugin:
+
+```bash
+# Select 20 most diverse tests
+pytest --diverse-k=20 tests/
+
+# With custom strategy and seed
+pytest --diverse-k=30 --diverse-strategy=fps_multi --diverse-seed=123 tests/
+
+# Filter by markers before selection
+pytest --diverse-k=20 --diverse-include-markers slow integration tests/
+
+# Group parametrized tests (select at group level)
+pytest --diverse-k=20 --diverse-group-parametrize tests/
+```
+
+Or via the `testcase-select` CLI:
+
+```bash
+# Full pipeline with pytest
+testcase-select run --framework pytest --suite tests/ --k 20 --strategy fps
+
+# Stage-by-stage
+testcase-select vectorize --framework pytest --suite tests/ --output ./artifacts/
+testcase-select select --artifacts ./artifacts/ --k 20
+testcase-select execute --framework pytest --suite tests/ --selection selected_tests.json
+```
+
+The pytest plugin is installed automatically and activated by `--diverse-k`. It uses AST-based text representation with sentence embeddings for test diversity analysis.
 
 ### Direct Robot Framework Integration
 
@@ -289,6 +323,11 @@ src/TestSelection/
     prerun_modifier.py # DiversePreRunModifier (SuiteVisitor)
     listener.py        # DiverseDataDriverListener (Listener v3)
     runner.py          # ExecutionRunner
+  pytest/              # pytest integration
+    plugin.py          # pytest plugin (pytest11 entry point)
+    collector.py       # Programmatic test collection
+    text_builder.py    # AST-based text representation
+    runner.py          # pytest execution
   pipeline/            # Orchestration layer
     vectorize.py       # Stage 1 orchestrator
     select.py          # Stage 2 orchestrator

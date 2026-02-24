@@ -18,13 +18,24 @@ def _setup_logging(verbose: bool = False) -> None:
     )
 
 
+def _add_framework_arg(parser: argparse.ArgumentParser) -> None:
+    """Add --framework option to a parser."""
+    parser.add_argument(
+        "--framework",
+        choices=["robot", "pytest"],
+        default="robot",
+        help="Test framework: robot (default) or pytest.",
+    )
+
+
 def _add_vectorize_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "vectorize", help="Stage 1: vectorize test suite",
     )
+    _add_framework_arg(p)
     p.add_argument(
         "--suite", required=True, type=Path,
-        help="Path to .robot suite",
+        help="Path to test suite directory",
     )
     p.add_argument(
         "--output", required=True, type=Path,
@@ -36,7 +47,7 @@ def _add_vectorize_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     p.add_argument(
         "--resolve-depth", type=int, default=0,
-        help="Keyword resolve depth",
+        help="Keyword resolve depth (Robot Framework only)",
     )
     p.add_argument(
         "--force", action="store_true",
@@ -44,7 +55,7 @@ def _add_vectorize_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     p.add_argument(
         "--datadriver-csv", nargs="*", type=Path,
-        help="DataDriver CSV files",
+        help="DataDriver CSV files (Robot Framework only)",
     )
     p.set_defaults(func=_cmd_vectorize)
 
@@ -99,15 +110,16 @@ def _add_execute_parser(subparsers: argparse._SubParsersAction) -> None:
         "execute",
         help="Stage 3: execute selected tests",
         epilog=(
-            "All arguments after -- are passed directly to robot. "
+            "All arguments after -- are passed directly to the test runner. "
             "Example: testcase-select execute --suite tests/ "
             "--selection sel.json "
             "-- --variable ENV:staging --loglevel DEBUG"
         ),
     )
+    _add_framework_arg(p)
     p.add_argument(
         "--suite", required=True, type=Path,
-        help="Path to .robot suite",
+        help="Path to test suite directory",
     )
     p.add_argument(
         "--selection", required=True, type=Path,
@@ -129,14 +141,15 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
         "run",
         help="Full pipeline: vectorize + select + execute",
         epilog=(
-            "All arguments after -- are passed directly to robot. "
+            "All arguments after -- are passed directly to the test runner. "
             "Example: testcase-select run --suite tests/ --k 20 "
             "-- --include smoke --variable ENV:staging"
         ),
     )
+    _add_framework_arg(p)
     p.add_argument(
         "--suite", required=True, type=Path,
-        help="Path to .robot suite",
+        help="Path to test suite directory",
     )
     p.add_argument(
         "--k", type=int, default=default_k,
@@ -156,7 +169,7 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     p.add_argument(
         "--resolve-depth", type=int, default=0,
-        help="Keyword resolve depth",
+        help="Keyword resolve depth (Robot Framework only)",
     )
     p.add_argument(
         "--force", action="store_true",
@@ -170,6 +183,11 @@ def _add_run_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def _cmd_vectorize(args: argparse.Namespace) -> int:
+    framework = getattr(args, "framework", "robot")
+
+    if framework == "pytest":
+        return _cmd_vectorize_pytest(args)
+
     from TestSelection.pipeline.vectorize import run_vectorize
 
     try:
@@ -183,6 +201,29 @@ def _cmd_vectorize(args: argparse.Namespace) -> int:
         )
         if indexed:
             logger.info("[DIVERSE-SELECT] Vectorization complete")
+        else:
+            logger.info(
+                "[DIVERSE-SELECT] Vectorization skipped (no changes)"
+            )
+        return 0
+    except Exception as exc:
+        logger.error("[DIVERSE-SELECT] Vectorization failed: %s", exc)
+        return 2
+
+
+def _cmd_vectorize_pytest(args: argparse.Namespace) -> int:
+    """Vectorize pytest tests."""
+    from TestSelection.pipeline.vectorize_pytest import run_vectorize_pytest
+
+    try:
+        indexed = run_vectorize_pytest(
+            suite_path=args.suite,
+            artifact_dir=args.output,
+            model_name=args.model,
+            force=args.force,
+        )
+        if indexed:
+            logger.info("[DIVERSE-SELECT] Vectorization complete (pytest)")
         else:
             logger.info(
                 "[DIVERSE-SELECT] Vectorization skipped (no changes)"
@@ -219,6 +260,11 @@ def _cmd_select(args: argparse.Namespace) -> int:
 
 
 def _cmd_execute(args: argparse.Namespace) -> int:
+    framework = getattr(args, "framework", "robot")
+
+    if framework == "pytest":
+        return _cmd_execute_pytest(args)
+
     from TestSelection.pipeline.execute import run_execute
 
     return run_execute(
@@ -229,7 +275,24 @@ def _cmd_execute(args: argparse.Namespace) -> int:
     )
 
 
+def _cmd_execute_pytest(args: argparse.Namespace) -> int:
+    """Execute pytest with selection."""
+    from TestSelection.pytest.runner import run_pytest_with_selection
+
+    return run_pytest_with_selection(
+        suite_path=args.suite,
+        selection_file=args.selection,
+        output_dir=str(args.output_dir),
+        extra_args=args.robot_passthrough,
+    )
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
+    framework = getattr(args, "framework", "robot")
+
+    if framework == "pytest":
+        return _cmd_run_pytest(args)
+
     from TestSelection.pipeline.execute import run_execute
     from TestSelection.pipeline.select import run_select
     from TestSelection.pipeline.vectorize import run_vectorize
@@ -280,6 +343,29 @@ def _cmd_run(args: argparse.Namespace) -> int:
     )
 
 
+def _cmd_run_pytest(args: argparse.Namespace) -> int:
+    """Run full pipeline for pytest."""
+    from TestSelection.pytest.runner import run_pytest_pipeline
+
+    try:
+        return run_pytest_pipeline(
+            suite_path=args.suite,
+            k=args.k,
+            strategy=args.strategy,
+            seed=args.seed,
+            model_name=args.model,
+            output_dir=str(args.output_dir),
+            extra_args=args.robot_passthrough,
+        )
+    except Exception as exc:
+        logger.warning(
+            "[DIVERSE-SELECT] pytest pipeline failed, "
+            "falling back to all tests: %s",
+            exc,
+        )
+        return _fallback_execute_pytest(args)
+
+
 def _fallback_execute(args: argparse.Namespace) -> int:
     """Execute all tests without selection (graceful degradation)."""
     logger.info("[DIVERSE-SELECT] Running all tests (no selection)")
@@ -290,11 +376,27 @@ def _fallback_execute(args: argparse.Namespace) -> int:
             "--outputdir",
             str(args.output_dir),
         ]
-        # Pass through any robot options from after --
         if args.robot_passthrough:
             robot_args.extend(args.robot_passthrough)
         robot_args.append(str(args.suite))
         return robot.run_cli(robot_args, exit=False)  # type: ignore[attr-defined]
+    except Exception as exc:
+        logger.error(
+            "[DIVERSE-SELECT] Fallback execution failed: %s", exc,
+        )
+        return 2
+
+
+def _fallback_execute_pytest(args: argparse.Namespace) -> int:
+    """Execute all pytest tests without selection (graceful degradation)."""
+    logger.info("[DIVERSE-SELECT] Running all pytest tests (no selection)")
+    try:
+        import pytest
+
+        pytest_args = [str(args.suite)]
+        if args.robot_passthrough:
+            pytest_args.extend(args.robot_passthrough)
+        return pytest.main(pytest_args)
     except Exception as exc:
         logger.error(
             "[DIVERSE-SELECT] Fallback execution failed: %s", exc,
@@ -308,7 +410,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="testcase-select",
         description=(
             "Vector-based diverse test case selection "
-            "for Robot Framework"
+            "for Robot Framework and pytest"
         ),
     )
     parser.add_argument(
@@ -328,10 +430,10 @@ def build_parser() -> argparse.ArgumentParser:
 def _split_robot_passthrough(
     argv: list[str],
 ) -> tuple[list[str], list[str]]:
-    """Split argv at -- into our args and robot passthrough args.
+    """Split argv at -- into our args and passthrough args.
 
-    Returns (our_args, robot_args). If no -- is present, robot_args
-    is empty.
+    Returns (our_args, passthrough_args). If no -- is present,
+    passthrough_args is empty.
     """
     try:
         sep = argv.index("--")
@@ -343,7 +445,7 @@ def _split_robot_passthrough(
 def main(argv: list[str] | None = None) -> int:
     """Main CLI entry point.
 
-    Arguments after -- are passed through to robot:
+    Arguments after -- are passed through to the test runner:
         testcase-select run --suite tests/ --k 20 \\
             -- --variable ENV:staging --loglevel DEBUG --include smoke
     """
