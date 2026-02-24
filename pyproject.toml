@@ -133,3 +133,9 @@ module = [
     "robot.*",
 ]
 ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "coverage>=7.13.4",
+    "pytest-cov>=7.0.0",
+]
