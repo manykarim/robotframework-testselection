@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "robotframework-testselection"
 dynamic = ["version"]
-description = "Vector-based diverse test case selection for Robot Framework"
+description = "Vector-based diverse test case selection for Robot Framework and pytest"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
@@ -14,6 +14,7 @@ authors = [
 ]
 keywords = [
     "robotframework",
+    "pytest",
     "testing",
     "test-selection",
     "diversity",
@@ -26,6 +27,7 @@ classifiers = [
     "Framework :: Robot Framework",
     "Framework :: Robot Framework :: Library",
     "Framework :: Robot Framework :: Tool",
+    "Framework :: Pytest",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
@@ -75,6 +77,9 @@ all = [
 
 [project.scripts]
 testcase-select = "TestSelection.cli:main"
+
+[project.entry-points.pytest11]
+diverse-selection = "TestSelection.pytest.plugin"
 
 [tool.hatch.version]
 path = "src/TestSelection/__init__.py"
