@@ -3086,6 +3086,12 @@ vectorize = [
     { name = "sentence-transformers" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "coverage" },
+    { name = "pytest-cov" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "apricot-select", marker = "extra == 'all'", specifier = ">=0.6" },
@@ -3113,6 +3119,12 @@ requires-dist = [
     { name = "sentence-transformers", marker = "extra == 'vectorize'", specifier = ">=2.2" },
 ]
 provides-extras = ["all", "chromadb", "dev", "selection-extras", "vectorize"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "coverage", specifier = ">=7.13.4" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+]
 
 [[package]]
 name = "rpds-py"
