@@ -37,9 +37,10 @@ class KeywordTreeResolver:
             if uk is not None:
                 for item in uk.body_items:
                     if hasattr(item, "name") and item.name:
+                        item_args = getattr(item, "args", ())
                         child = self._resolve_recursive(
                             item.name,
-                            tuple(item.args),
+                            tuple(item_args),
                             depth + 1,
                             max_depth,
                         )
