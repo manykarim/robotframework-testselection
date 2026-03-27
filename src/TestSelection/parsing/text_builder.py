@@ -39,10 +39,11 @@ class TextRepresentationBuilder:
             )
         for item in body_items:
             if hasattr(item, "name") and item.name:
+                item_args = getattr(item, "args", ())
                 if self._config.resolve_depth > 0:
                     tree = self._resolver.resolve(
                         item.name,
-                        tuple(item.args),
+                        tuple(item_args),
                         max_depth=self._config.resolve_depth,
                     )
                     parts.append(tree.flatten())
@@ -50,7 +51,7 @@ class TextRepresentationBuilder:
                     kw_text = item.name.replace("_", " ")
                     semantic_args = [
                         str(a)
-                        for a in item.args
+                        for a in item_args
                         if not any(
                             str(a).startswith(p)
                             for p in self._config.noise_prefixes

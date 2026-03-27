@@ -14,7 +14,10 @@ Open Application
 
 Login As User
     [Arguments]    ${username}    ${password}
-    Open Application    ${BASE_URL}
+    # VAR statement is a bit redundant, but this covers the case of VAR
+    # syntax handling for resolve_depth > 0
+    VAR    ${app_url}    ${BASE_URL}
+    Open Application    ${app_url}
     Input Credentials    ${username}    ${password}
     Submit Login Form
 
@@ -110,8 +113,10 @@ Add Single Item To Cart
 Add Multiple Items To Cart
     [Tags]    cart    regression
     Login As User    ${ADMIN_USER}    ${ADMIN_PASS}
-    Add Item To Cart    Wireless Mouse
-    Add Item To Cart    USB Keyboard
+    VAR   @{items}    Wireless Mouse    USB Keyboard
+    FOR    ${item}    IN    @{items}
+      Add Item To Cart    ${item}
+    END
     Verify Cart Total    59.98
 
 Complete Purchase Flow
